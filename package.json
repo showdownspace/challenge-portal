@@ -1,0 +1,23 @@
+{
+  "name": "showdownspace-challenge-portal",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@tsconfig/bun": "^1.0.7",
+    "@types/bun": "^1.1.13"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@sec-ant/readable-stream": "^0.6.0",
+    "@thai/html": "npm:@jsr/thai__html",
+    "async-cache-dedupe": "^2.2.0",
+    "consola": "^3.2.3",
+    "elysia": "^1.1.25",
+    "grist-api": "^0.1.7",
+    "hono": "^4.6.10",
+    "jose": "^5.9.6",
+    "p-limit": "^6.1.0"
+  }
+}
