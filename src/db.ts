@@ -4,7 +4,7 @@ import pLimit from "p-limit";
 import { grist } from "./grist";
 const gristLimit = pLimit(3);
 
-interface Tables {
+export interface Tables {
   Portal_Users: {
     id: number;
     name: string;
@@ -15,10 +15,22 @@ interface Tables {
     admin: boolean;
   };
   Challenges: {
+    id: number;
     codename: string;
+    url: string | null;
     maxScore: number;
     gradingType: "auto" | "manual";
     enabled: boolean;
+  };
+  Submissions: {
+    id: number;
+    submittedBy: number;
+    challenge: number;
+    submittedAt: number;
+    passed: boolean;
+    penalty: number;
+    dismissed: boolean;
+    autoSubmissionInfo: string | null;
   };
 }
 
@@ -30,9 +42,23 @@ const cache = createCache({ ttl: 5, stale: 3 })
     consola.debug("getUserInfo", sub);
     return result[0] as Tables["Portal_Users"] | undefined;
   })
+  .define("getChallengers", async () => {
+    const result = await gristLimit(() =>
+      grist.fetchTable("Portal_Users", { enrolled: [true] })
+    );
+    consola.debug("getChallengers");
+    return result as Tables["Portal_Users"][];
+  })
   .define("getChallenges", async () => {
     const result = await gristLimit(() => grist.fetchTable("Challenges", {}));
     return result as Tables["Challenges"][];
+  })
+  .define("fetchSubmissionsByUserId", async (userId: number) => {
+    const result = await gristLimit(() =>
+      grist.fetchTable("Submissions", { submittedBy: [userId] })
+    );
+    consola.debug("fetchSubmissionsByUserId", userId);
+    return result as Tables["Submissions"][];
   });
 
 export async function getUserInfo(userId: string) {
@@ -41,6 +67,10 @@ export async function getUserInfo(userId: string) {
 
 export async function getChallenges() {
   return cache.getChallenges();
+}
+
+export async function getChallengers() {
+  return cache.getChallengers();
 }
 
 export async function registerUser(
@@ -69,4 +99,73 @@ export async function onboardUser(
     ["sub"]
   );
   cache.clear("getUserInfo", sub);
+}
+
+export async function createSubmission(
+  userInfo: Pick<Tables["Portal_Users"], "id">,
+  challenge: Pick<Tables["Challenges"], "id">,
+  autoSubmissionInfo?: string
+) {
+  const found = (await grist.fetchTable("Submissions", {
+    submittedBy: [userInfo.id],
+    challenge: [challenge.id],
+  })) as Tables["Submissions"][];
+  if (found[0]?.passed) {
+    throw new Error("Already passed");
+  }
+  if (found[0] && !found[0].dismissed) {
+    throw new Error("Already in review");
+  }
+  await grist.syncTable(
+    "Submissions",
+    [
+      {
+        submittedBy: userInfo.id,
+        challenge: challenge.id,
+        submittedAt: Date.now() / 1e3,
+        dismissed: false,
+        ...(autoSubmissionInfo ? { autoSubmissionInfo } : {}),
+      },
+    ],
+    ["submittedBy", "challenge"]
+  );
+  cache.clear("fetchSubmissionsByUserId", userInfo.id);
+}
+
+export async function getSubmissions(
+  userInfo: Pick<Tables["Portal_Users"], "id">
+) {
+  return cache.fetchSubmissionsByUserId(userInfo.id);
+}
+
+export async function getPendingReviewSubmissions() {
+  const submissions = (await grist.fetchTable("Submissions", {
+    dismissed: [false],
+    passed: [false],
+  })) as Tables["Submissions"][];
+  submissions.sort((a, b) => {
+    return a.submittedAt - b.submittedAt;
+  });
+  return submissions;
+}
+
+export async function approveSubmission(submissionId: number) {
+  await grist.updateRecords("Submissions", [
+    { id: submissionId, passed: true },
+  ]);
+  cache.clear("fetchSubmissionsByUserId", submissionId);
+}
+
+export async function rejectSubmission(submissionId: number) {
+  const [submission] = (await grist.fetchTable("Submissions", {
+    id: [submissionId],
+  })) as Tables["Submissions"][];
+  await grist.updateRecords("Submissions", [
+    {
+      id: submissionId,
+      dismissed: true,
+      penalty: (submission.penalty || 0) + 1,
+    },
+  ]);
+  cache.clear("fetchSubmissionsByUserId", submissionId);
 }

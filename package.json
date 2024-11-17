@@ -10,6 +10,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.1.1",
     "@sec-ant/readable-stream": "^0.6.0",
     "@thai/html": "npm:@jsr/thai__html",
     "async-cache-dedupe": "^2.2.0",
@@ -18,6 +19,7 @@
     "grist-api": "^0.1.7",
     "hono": "^4.6.10",
     "jose": "^5.9.6",
+    "minio": "^8.0.2",
     "p-limit": "^6.1.0"
   }
 }

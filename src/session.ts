@@ -1,6 +1,7 @@
 import * as jose from "jose";
+import { JwtUtils } from "./jwtUtils";
 
-const secret = new TextEncoder().encode(Bun.env["JWT_SECRET"] || "JWT Secret");
+const jwtUtils = new JwtUtils("session-management");
 
 type ResolveSessionResult =
   | { active: jose.JWTPayload }
@@ -13,9 +14,7 @@ export async function resolveSession(
     return { reason: "No session cookie" };
   }
   try {
-    const { payload } = await jose.jwtVerify(token, secret, {
-      algorithms: ["HS256"],
-    });
+    const payload = await jwtUtils.verify(token);
     return { active: payload };
   } catch (error: any) {
     return { reason: "Invalid session cookie", error };
@@ -23,8 +22,5 @@ export async function resolveSession(
 }
 
 export async function generateSessionToken(payload: jose.JWTPayload) {
-  return new jose.SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("12h")
-    .sign(secret);
+  return jwtUtils.sign(payload);
 }
