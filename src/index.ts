@@ -34,6 +34,12 @@ const port = 9749;
 
 const app = new Elysia()
   .use(createLogger())
+  .onRequest(({ request }) => {
+    if (Bun.env["HTTPS"]) {
+      const url = request.url.replace(/^http:/, "https:");
+      Object.defineProperty(request, "url", { value: url });
+    }
+  })
   .onError(({ error, code }) => {
     consola.error(`[elysia]`, code, error);
   })
