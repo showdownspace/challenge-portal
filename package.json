@@ -21,5 +21,8 @@
     "jose": "^5.9.6",
     "minio": "^8.0.2",
     "p-limit": "^6.1.0"
+  },
+  "scripts": {
+    "start": "bun --watch src/index.ts"
   }
 }
