@@ -386,6 +386,8 @@ const app = new Elysia()
                             ? html`<a
                                 class="btn btn-primary btn-sm"
                                 href="${getChallengeUrl(challenge)}"
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 >Go to challenge</a
                               >`
                             : ""}
