@@ -28,6 +28,7 @@ import {
   generateSubmissionToken,
   validateSubmissionToken,
 } from "./submissions";
+import { getDirectorUrl, getGuestUrl } from "./vdoNinja";
 import { html, respondWithPage, type Html } from "./View";
 const port = 9749;
 
@@ -335,6 +336,15 @@ const app = new Elysia()
 
           page.write(html`
             <p>Welcome, <strong>${name}</strong></p>
+            ${isEnrolled
+              ? html`
+                  <p>
+                    <a href="${getGuestUrl(name)}" class="btn btn-outline-info"
+                      >Share my screen with VDO.ninja</a
+                    >
+                  </p>
+                `
+              : ""}
             <h2>Challenges</h2>
             ${!isEnrolled
               ? html`
@@ -424,6 +434,17 @@ const app = new Elysia()
               return new Response("Forbidden", { status: 403 });
             }
           })
+          .get("/", async () =>
+            respondWithPage(layout, async (page) => {
+              page.title = "Admin";
+              page.write(html`
+                <ul>
+                  <li><a href="${getDirectorUrl()}">VDO Ninja Director</a></li>
+                  <li><a href="/admin/review">Review</a></li>
+                </ul>
+              `);
+            })
+          )
           .get("/review", async () =>
             respondWithPage(layout, async (page) => {
               page.title = "Review";
