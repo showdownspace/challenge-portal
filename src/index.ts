@@ -294,15 +294,20 @@ const app = new Elysia()
 
           const getChallengeUrl = async (challenge: Tables["Challenges"]) => {
             const url = new URL(challenge.url!);
-            url.searchParams.set(
-              "submitTo",
-              new URL("/api/submissions/submit", request.url).toString()
-            );
-            url.searchParams.set(
-              "token",
-              await generateSubmissionToken(userInfo, challenge)
-            );
-            url.searchParams.set("reportTo", "ws://localhost:9750");
+            if (challenge.gradingType === "auto") {
+              url.searchParams.set(
+                "submitTo",
+                new URL("/api/submissions/submit", request.url).toString()
+              );
+              url.searchParams.set(
+                "token",
+                await generateSubmissionToken(userInfo, challenge)
+              );
+              url.searchParams.set(
+                "reportTo",
+                Bun.env["PROGRESS_REPORTER_URL"] || "ws://localhost:9750"
+              );
+            }
             return url.toString();
           };
 
