@@ -350,7 +350,11 @@ const app = new Elysia()
             ${isEnrolled
               ? html`
                   <p>
-                    <a href="${getGuestUrl(name)}" class="btn btn-outline-info"
+                    <a
+                      href="${getGuestUrl(name)}"
+                      class="btn btn-outline-info"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       >Share my screen with VDO.ninja</a
                     >
                   </p>
