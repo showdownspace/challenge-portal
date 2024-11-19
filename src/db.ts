@@ -17,6 +17,7 @@ export interface Tables {
   Challenges: {
     id: number;
     codename: string;
+    description: string;
     url: string | null;
     maxScore: number;
     gradingType: "auto" | "manual";

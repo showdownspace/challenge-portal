@@ -70,6 +70,7 @@ export function generateExampleScoreboard(seed: string = "42") {
     gradingType: "auto" as const,
     enabled: true,
     url: "",
+    description: "",
   };
   const challenges: Tables["Challenges"][] = [
     { id: 1, codename: "1_nyan", maxScore: 20, ...challengeCommon },

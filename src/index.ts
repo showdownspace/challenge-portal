@@ -49,10 +49,11 @@ const app = new Elysia()
       .use(cors())
       .get(
         "/scoreboard",
-        async ({ query: { key }, error }) => {
+        async ({ query: { key }, error, set }) => {
           if (key !== scoreboardApiKey) {
             return error("Unauthorized");
           }
+          set.headers["access-control-allow-origin"] = "*";
           return getCurrentScoreboard();
         },
         {
