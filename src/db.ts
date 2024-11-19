@@ -32,6 +32,12 @@ export interface Tables {
     dismissed: boolean;
     autoSubmissionInfo: string | null;
   };
+  AutoProgress: {
+    id: number;
+    team: number;
+    challenge: number;
+    progress: number;
+  };
 }
 
 const cache = createCache({ ttl: 5, stale: 3 })
@@ -147,6 +153,10 @@ export async function getPendingReviewSubmissions() {
     return a.submittedAt - b.submittedAt;
   });
   return submissions;
+}
+
+export async function getAllSubmissions() {
+  return (await grist.fetchTable("Submissions", {})) as Tables["Submissions"][];
 }
 
 export async function approveSubmission(submissionId: number) {

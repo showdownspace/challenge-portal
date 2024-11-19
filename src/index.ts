@@ -23,6 +23,7 @@ import {
 } from "./db";
 import { layout } from "./layout";
 import { saveToStorage } from "./objectStorage";
+import { getCurrentScoreboard, scoreboardApiKey } from "./scoreboard";
 import { generateSessionToken, resolveSession } from "./session";
 import {
   generateSubmissionToken,
@@ -44,51 +45,67 @@ const app = new Elysia()
     consola.error(`[elysia]`, code, error);
   })
   .group("/api", (app) =>
-    app.use(cors()).group(
-      "/submissions",
-      {
-        headers: t.Object({
-          "x-submission-token": t.String(),
-        }),
-      },
-      (app) =>
-        app
-          .resolve(async ({ headers, error }) => {
-            const token = headers["x-submission-token"];
-            try {
-              const result = await validateSubmissionToken(token);
-              return { submissionTokenInfo: result };
-            } catch (e) {
-              return error(401);
-            }
-          })
-          .get("/tokeninfo", ({ submissionTokenInfo }) => {
-            return submissionTokenInfo;
-          })
-          .post(
-            "/submit",
-            async ({ submissionTokenInfo, body }) => {
-              const file = await saveToStorage(
-                JSON.stringify(body),
-                "application/json",
-                ".json"
-              );
-              const userInfo = await getUserInfo(submissionTokenInfo.sub);
-              if (!userInfo) {
-                throw new Error("User not found");
+    app
+      .use(cors())
+      .get(
+        "/scoreboard",
+        async ({ query: { key }, error }) => {
+          if (key !== scoreboardApiKey) {
+            return error("Unauthorized");
+          }
+          return getCurrentScoreboard();
+        },
+        {
+          query: t.Object({
+            key: t.String(),
+          }),
+        }
+      )
+      .group(
+        "/submissions",
+        {
+          headers: t.Object({
+            "x-submission-token": t.String(),
+          }),
+        },
+        (app) =>
+          app
+            .resolve(async ({ headers, error }) => {
+              const token = headers["x-submission-token"];
+              try {
+                const result = await validateSubmissionToken(token);
+                return { submissionTokenInfo: result };
+              } catch (e) {
+                return error(401);
               }
-              await createSubmission(
-                userInfo,
-                { id: submissionTokenInfo.challengeId },
-                file
-              );
-              return { ok: true };
-            },
-            {
-              body: t.Any(),
-            }
-          )
-    )
+            })
+            .get("/tokeninfo", ({ submissionTokenInfo }) => {
+              return submissionTokenInfo;
+            })
+            .post(
+              "/submit",
+              async ({ submissionTokenInfo, body }) => {
+                const file = await saveToStorage(
+                  JSON.stringify(body),
+                  "application/json",
+                  ".json"
+                );
+                const userInfo = await getUserInfo(submissionTokenInfo.sub);
+                if (!userInfo) {
+                  throw new Error("User not found");
+                }
+                await createSubmission(
+                  userInfo,
+                  { id: submissionTokenInfo.challengeId },
+                  file
+                );
+                return { ok: true };
+              },
+              {
+                body: t.Any(),
+              }
+            )
+      )
   )
   .guard({
     cookie: t.Cookie({
@@ -457,6 +474,11 @@ const app = new Elysia()
               page.write(html`
                 <ul>
                   <li><a href="${getDirectorUrl()}">VDO Ninja Director</a></li>
+                  <li>
+                    <a href="/api/scoreboard?key=${scoreboardApiKey}"
+                      >Scoreboard URL</a
+                    >
+                  </li>
                   <li><a href="/admin/review">Review</a></li>
                 </ul>
               `);
