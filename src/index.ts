@@ -306,130 +306,148 @@ const app = new Elysia()
           `);
         })
       )
-      .get("/dashboard", ({ userInfo, request }) =>
-        respondWithPage(layout, async (page) => {
-          page.title = "Dashboard";
-          const isAdmin = userInfo.admin;
-          const isEnrolled = userInfo.enrolled;
-          const name = isEnrolled
-            ? userInfo.teamName || userInfo.name
-            : userInfo.name;
+      .get(
+        "/dashboard",
+        ({ userInfo, request, query }) =>
+          respondWithPage(layout, async (page) => {
+            page.title = "Dashboard";
+            const isAdmin = userInfo.admin;
+            const isEnrolled = userInfo.enrolled;
+            const name = isEnrolled
+              ? userInfo.teamName || userInfo.name
+              : userInfo.name;
 
-          const getChallengeUrl = async (challenge: Tables["Challenges"]) => {
-            const url = new URL(challenge.url!);
-            if (challenge.gradingType === "auto") {
-              url.searchParams.set(
-                "submitTo",
-                new URL("/api/submissions/submit", request.url).toString()
-              );
-              url.searchParams.set(
-                "token",
-                await generateSubmissionToken(userInfo, challenge)
-              );
-              url.searchParams.set(
-                "reportTo",
-                Bun.env["PROGRESS_REPORTER_URL"] || "ws://localhost:9750"
-              );
-            }
-            return url.toString();
-          };
+            const getChallengeUrl = async (challenge: Tables["Challenges"]) => {
+              const url = new URL(challenge.url!);
+              if (challenge.gradingType === "auto") {
+                url.searchParams.set(
+                  "submitTo",
+                  new URL("/api/submissions/submit", request.url).toString()
+                );
+                url.searchParams.set(
+                  "token",
+                  await generateSubmissionToken(userInfo, challenge)
+                );
+                url.searchParams.set(
+                  "reportTo",
+                  Bun.env["PROGRESS_REPORTER_URL"] || "ws://localhost:9750"
+                );
+              }
+              return url.toString();
+            };
 
-          const mySubmissionsPromise = getSubmissions(userInfo);
-          const renderSubmission = async (challenge: Tables["Challenges"]) => {
-            const submission = (await mySubmissionsPromise).find(
-              (x) => x.challenge === challenge.id
-            );
-            if (submission?.passed) {
-              return html`<span class="badge bg-success">Passed</span>`;
-            }
-            if (submission && !submission.dismissed) {
-              return html`<span class="badge bg-warning">Pending review</span>`;
-            }
-            if (challenge.gradingType === "auto") return "auto-submit";
-            return html`<form
-              action="/request-review"
-              method="post"
-              onsubmit="return confirm('Are you sure? There is a penalty for failed submissions.')"
-            >
-              <input
-                type="hidden"
-                name="challenge"
-                value="${challenge.codename}"
-              />
-              <button type="submit" class="btn btn-info btn-sm">
-                Request review
-              </button>
-            </form>`;
-          };
+            const mySubmissionsPromise = getSubmissions(userInfo);
+            const renderSubmission = async (
+              challenge: Tables["Challenges"]
+            ) => {
+              const submission = (await mySubmissionsPromise).find(
+                (x) => x.challenge === challenge.id
+              );
+              if (submission?.passed) {
+                return html`<span class="badge bg-success">Passed</span>`;
+              }
+              if (submission && !submission.dismissed) {
+                return html`<span class="badge bg-warning"
+                  >Pending review</span
+                >`;
+              }
+              if (challenge.gradingType === "auto") return "auto-submit";
+              return html`<form
+                action="/request-review"
+                method="post"
+                onsubmit="return confirm('Are you sure? There is a penalty for failed submissions.')"
+              >
+                <input
+                  type="hidden"
+                  name="challenge"
+                  value="${challenge.codename}"
+                />
+                <button type="submit" class="btn btn-info btn-sm">
+                  Request review
+                </button>
+              </form>`;
+            };
 
-          page.write(html`
-            <p>Welcome, <strong>${name}</strong></p>
-            ${isEnrolled
-              ? html`
-                  <p>
-                    <a
-                      href="${getGuestUrl(name)}"
-                      class="btn btn-outline-info"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      >Share my screen with VDO.ninja</a
-                    >
-                  </p>
-                `
-              : ""}
-            <h2>Challenges</h2>
-            ${!isEnrolled
-              ? html`
-                  <div class="alert alert-warning" role="alert">
-                    You are a spectator. You can view the challenges and play
-                    along, but you cannot submit solutions.
-                  </div>
-                `
-              : ""}
-            ${getChallenges().then((challenges) => {
-              return html`
-                <table class="table table-bordered">
-                  <thead>
-                    <tr>
-                      <th scope="col">Challenge</th>
-                      <th scope="col">Link</th>
-                      ${isEnrolled ? html`<th scope="col">Submit</th>` : ""}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${challenges
-                      .filter((x) => isAdmin || x.enabled)
-                      .map((challenge) => {
-                        const cells: Html[] = [];
-                        cells.push(html`<td>${challenge.codename}</td>`);
-                        cells.push(html`<td>
-                          ${challenge.url
-                            ? html`<a
-                                class="btn btn-primary btn-sm"
-                                href="${getChallengeUrl(challenge)}"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                >Go to challenge</a
-                              >`
-                            : ""}
-                        </td>`);
-                        if (isEnrolled) {
+            page.write(html`
+              <p>Welcome, <strong>${name}</strong></p>
+              ${isEnrolled
+                ? html`
+                    <p>
+                      <a
+                        href="${getGuestUrl(name)}"
+                        class="btn btn-outline-info"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Share my screen with VDO.ninja</a
+                      >
+                    </p>
+                  `
+                : ""}
+              <h2>Challenges</h2>
+              ${!isEnrolled
+                ? html`
+                    <div class="alert alert-warning" role="alert">
+                      You are a spectator. You can view the challenges and play
+                      along, but you cannot submit solutions.
+                    </div>
+                  `
+                : ""}
+              ${getChallenges().then((challenges) => {
+                return html`
+                  <table class="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th scope="col">Challenge</th>
+                        <th scope="col">Link</th>
+                        ${isEnrolled ? html`<th scope="col">Submit</th>` : ""}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${challenges
+                        .filter((x) => (isAdmin && query.all) || x.enabled)
+                        .sort((x, y) => x.codename.localeCompare(y.codename))
+                        .map((challenge) => {
+                          const cells: Html[] = [];
                           cells.push(html`<td>
-                            ${renderSubmission(challenge)}
+                            <span class="font-alt">${challenge.codename}</span
+                            ><br />
+                            <small class="text-muted"
+                              >${challenge.description}</small
+                            >
                           </td>`);
-                        }
-                        return html`
-                          <tr>
-                            ${cells}
-                          </tr>
-                        `;
-                      })}
-                  </tbody>
-                </table>
-              `;
-            })}
-          `);
-        })
+                          cells.push(html`<td>
+                            ${challenge.url
+                              ? html`<a
+                                  class="btn btn-primary btn-sm"
+                                  href="${getChallengeUrl(challenge)}"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  >Go to challenge</a
+                                >`
+                              : ""}
+                          </td>`);
+                          if (isEnrolled) {
+                            cells.push(html`<td>
+                              ${renderSubmission(challenge)}
+                            </td>`);
+                          }
+                          return html`
+                            <tr>
+                              ${cells}
+                            </tr>
+                          `;
+                        })}
+                    </tbody>
+                  </table>
+                `;
+              })}
+            `);
+          }),
+        {
+          query: t.Object({
+            all: t.Optional(t.String()),
+          }),
+        }
       )
       .post(
         "/request-review",

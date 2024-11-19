@@ -25,6 +25,10 @@ export const layout: PageLayout = {
           :root {
             --bs-font-sans-serif: "Work Sans", Sarabun, sans-serif;
             --bs-body-bg: #272d2d;
+            --alt-font: "Fragment Mono", "Work Sans", Sarabun, sans-serif;
+          }
+          .font-alt {
+            font-family: var(--alt-font);
           }
         </style>
         ${head}
